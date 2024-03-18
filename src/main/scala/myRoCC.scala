@@ -1,9 +1,20 @@
-class CustomAccelerator(opcodes: OpcodeSet)
+import chisel3._
+import chisel3.util._
+import freechips.rocketchip.tile._
+import org.chipsalliance.cde.config._
+import freechips.rocketchip.diplomacy._
+
+class WithmyRoCC extends Config((site, here, up) => {
+  case BuildRoCC => Seq((p: Parameters) => LazyModule(
+    new myRoCC(OpcodeSet.custom0(p))))
+})
+
+class myRoCC(opcodes: OpcodeSet)
     (implicit p: Parameters) extends LazyRoCC(opcodes) {
-  override lazy val module = new CustomAcceleratorModule(this)
+  override lazy val module = new myRoCCModule(this)
 }
 
-class CustomAcceleratorModule(outer: CustomAccelerator)
+class myRoCCModule(outer: myRoCC)
     extends LazyRoCCModuleImp(outer) {
   val cmd = Queue(io.cmd)
   // The parts of the command are as follows
