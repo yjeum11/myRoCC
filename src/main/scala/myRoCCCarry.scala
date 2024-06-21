@@ -15,13 +15,14 @@ class WithmyRoCCCarry extends Config((site, here, up) => {
 })
 
 class myRoCCCarry(opcodes: OpcodeSet)
-    (implicit p: Parameters) extends LazyRoCC(opcodes) {
+    (implicit p: Parameters) extends LazyRoCC(opcodes, usesFPU=true) {
   override lazy val module = new myRoCCCarryModule(this)
 }
 
 class myRoCCCarryModule(outer: myRoCCCarry)
     extends LazyRoCCModuleImp(outer) {
-  val cmd = Queue(io.cmd)
+  //val cmd = Queue(io.cmd)
+  //
   // The parts of the command are as follows
   // inst - the parts of the instruction itself
   //   opcode
@@ -55,13 +56,13 @@ class myRoCCCarryModule(outer: myRoCCCarry)
   //           MSB 1 read, 0 write
   //           bottom 3 bits is flag
   //
-  val opcode = cmd.bits.inst.opcode
+  val opcode = io.cmd.bits.inst.opcode
 
   val cin = Wire(Bool())
   cin := false.B
-  val cin_index = cmd.bits.inst.funct(5, 3)
-  val cout_index = cmd.bits.inst.funct(2, 0)
-  val addsub = cmd.bits.inst.funct(6)
+  val cin_index = io.cmd.bits.inst.funct(5, 3)
+  val cout_index = io.cmd.bits.inst.funct(2, 0)
+  val addsub = io.cmd.bits.inst.funct(6)
 
   val result = Wire(UInt(65.W))
   result := 0.U
@@ -70,14 +71,17 @@ class myRoCCCarryModule(outer: myRoCCCarry)
 
   val regs = RegInit(VecInit(Seq.fill(8)(false.B)))
 
+  val dont_resp = Wire(Bool())
+  dont_resp := false.B
+
   when (opcode === "b0001011".U) { // custom0
     when (addsub === 1.U) {
-      result := cmd.bits.rs1 -& cmd.bits.rs2 - cin
+      result := io.cmd.bits.rs1 -& io.cmd.bits.rs2 - cin
     } .otherwise {
-      result := cmd.bits.rs1 +& cmd.bits.rs2 + cin
+      result := io.cmd.bits.rs1 +& io.cmd.bits.rs2 + cin
     }
 
-    when (cmd.fire) {
+    when (io.cmd.fire) {
       when (cout_index =/= 0.U) {
         regs(cout_index) := cout
       }
@@ -92,14 +96,14 @@ class myRoCCCarryModule(outer: myRoCCCarry)
     // conditional cout
     val cond = regs(cin_index)
     
-    when (cmd.fire) {
+    when (io.cmd.fire) {
       when (cout_index =/= 0.U) {
         regs(cout_index) := Mux(cond, cout, false.B);
       }
       when (addsub === 1.U) {
-        result := Mux(cond, cmd.bits.rs1 -& cmd.bits.rs2, cmd.bits.rs1)
+        result := Mux(cond, io.cmd.bits.rs1 -& io.cmd.bits.rs2, io.cmd.bits.rs1)
       } .otherwise {
-        result := Mux(cond, cmd.bits.rs1 +& cmd.bits.rs2, cmd.bits.rs1)
+        result := Mux(cond, io.cmd.bits.rs1 +& io.cmd.bits.rs2, io.cmd.bits.rs1)
       }
     } 
     io.resp.bits.data := sum
@@ -113,11 +117,11 @@ class myRoCCCarryModule(outer: myRoCCCarry)
       cin := regs(cin_index)
     } 
     
-    when (cmd.fire) {
+    when (io.cmd.fire) {
       when (addsub === 1.U) {
-        result := Mux(cond, cmd.bits.rs1 -& cmd.bits.rs2 + cin, cmd.bits.rs1)
+        result := Mux(cond, io.cmd.bits.rs1 -& io.cmd.bits.rs2 + cin, io.cmd.bits.rs1)
       } .otherwise {
-        result := Mux(cond, cmd.bits.rs1 +& cmd.bits.rs2 - cin, cmd.bits.rs1)
+        result := Mux(cond, io.cmd.bits.rs1 +& io.cmd.bits.rs2 - cin, io.cmd.bits.rs1)
       }
     } 
     io.resp.bits.data := sum
@@ -125,14 +129,17 @@ class myRoCCCarryModule(outer: myRoCCCarry)
     when (addsub === 1.U) { // read from carry
       io.resp.bits.data := regs(cout_index)
     } .otherwise {
+      // don't respond at all
+      dont_resp := true.B
       io.resp.bits.data := 0.U
-      regs(cout_index) := cmd.bits.rs1(0)
+      regs(cout_index) := io.cmd.bits.rs1(0)
     }
   }
 
-  cmd.ready := true.B
+  io.cmd.ready := true.B
   io.busy := false.B
-  io.resp.bits.rd := cmd.bits.inst.rd
-  io.resp.valid := cmd.valid
+  // boom doesn't commit properly
+  io.resp.bits.rd := io.cmd.bits.inst.rd
+  io.resp.valid := io.cmd.valid && (~dont_resp)
   io.interrupt := false.B
 }
