@@ -1,7 +1,4 @@
-[0m[[0m[31merror[0m] [0m[0m/home/yeum/chipyard/generators/myRoCC/src/main/scala/myRoCC.scala:9:33: freechips.rocketchip.tile.OpcodeSet does not take parameters[0m
-[0m[[0m[31merror[0m] [0m[0m    new myRoCC(OpcodeSet.custom0(p))))[0m
-[0m[[0m[31merror[0m] [0m[0m                                ^[0m
-[0m[[0m[31merror[0m] [0m[0m/home/yeum/chipyard/generators/myRoCC/src/main/scala/myRoCC.scala:9:5: could not find implicit value for parameter p: org.chipsalliance.cde.config.Parameters[0m
-[0m[[0m[31merror[0m] [0m[0m    new myRoCC(OpcodeSet.custom0(p))))[0m
-[0m[[0m[31merror[0m] [0m[0m    ^[0m
-[0m[[0m[31merror[0m] [0m[0mtwo errors found[0m
+[0m[[0m[31merror[0m] [0m[0m/home/yeum/chipyard/generators/myRoCC/src/main/scala/myRoCCCarry.scala:42:9: not found: value cmd[0m
+[0m[[0m[31merror[0m] [0m[0m  when (cmd.fire) {[0m
+[0m[[0m[31merror[0m] [0m[0m        ^[0m
+[0m[[0m[31merror[0m] [0m[0mone error found[0m
